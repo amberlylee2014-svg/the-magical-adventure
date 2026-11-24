@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Magical Adventure</title>
+<style>
+  :root {
+    --pink: #FFF0F5;
+    --light-pink: #FFE4EF;
+    --dark-pink: #D63384;
+    --purple: #A64D79;
+    --border: #F4A6C1;
+    --white: #FFFFFF;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; padding: 20px;
+    display: grid; place-items: center;
+    background: var(--pink); color: var(--purple);
+    font-family: "Trebuchet MS", Arial, sans-serif;
+  }
+  .outer {
+    width: min(760px, 100%); min-height: 550px; padding: 7px;
+    background: var(--light-pink); border-radius: 18px;
+    border: 2px solid var(--border);
+    box-shadow: 0 10px 30px rgba(166,77,121,.12);
+  }
+  .main {
+    min-height: 534px; padding: 24px 22px;
+    background: var(--white); border: 2px solid var(--border);
+    border-radius: 13px; text-align: center;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  h1 { margin: 8px 0 14px; color: var(--purple); font-size: clamp(1.8rem, 5vw, 2.3rem); }
+  .rule { width: 90%; height: 2px; background: var(--border); margin: 5px 0 18px; }
+  .art {
+    width: 150px; height: 130px; display: grid; place-items: center;
+    margin: 5px auto 14px; border-radius: 18px;
+    background: linear-gradient(145deg, #fff0f7, #f8e8ff);
+    font-size: 5rem; border: 1px solid var(--border);
+  }
+  .story {
+    width: 100%; max-width: 640px; padding: 20px 16px;
+    margin: 5px 0 15px; border: 1px solid var(--border);
+    border-radius: 12px; background: var(--light-pink);
+    color: var(--dark-pink); font-size: 1.08rem; line-height: 1.65;
+    white-space: pre-line;
+  }
+  input {
+    width: min(320px, 90%); padding: 12px; margin: 10px 0;
+    border: 1px solid var(--border); border-radius: 8px;
+    font-size: 1rem; text-align: center;
+  }
+  button {
+    display: block; width: min(330px, 90%); margin: 7px auto;
+    padding: 12px 16px; border: 1px solid var(--border);
+    border-radius: 9px; background: var(--light-pink);
+    color: var(--purple); font-size: 1rem; font-weight: bold;
+    cursor: pointer; transition: .15s ease;
+  }
+  button:hover { background: var(--dark-pink); color: white; transform: translateY(-1px); }
+  button.secondary { width: auto; min-width: 140px; background: white; font-size: .92rem; }
+  button:focus-visible, input:focus-visible { outline: 3px solid #D63384; outline-offset: 2px; }
+  .error { min-height: 22px; color: #c62828; font-size: .9rem; }
+  .footer { margin-top: auto; padding-top: 16px; color: #b56b91; font-size: .8rem; }
+  @media (max-width: 480px) {
+    body { padding: 10px; }
+    .main { padding: 18px 12px; }
+    .outer { min-height: 0; }
+    .main { min-height: 520px; }
+  }
+</style>
+</head>
+<body>
+<div class="outer">
+  <main class="main" id="game" aria-live="polite"></main>
+</div>
+<script>
+const game = document.getElementById("game");
+let playerName = "";
+let history = [];
+
+const scenes = {
+  welcome: {
+    title: () => `Welcome, ${playerName}!`,
+    art: "🦄✨",
+    story: "Are you ready for a magical adventure?\n\nA little unicorn needs your help!\n\nIts magical crystal has disappeared.\nYour mission is to find it and save the unicorn!\n\nGet ready to explore a magical world!",
+    choices: [{ text: "Start My Adventure", next: "path" }]
+  },
+  path: {
+    title: "Choose Your Path",
+    art: "🌸🏰🌈",
+    story: "You arrive at a magical place with three paths.\n\nWhere would you like to go?",
+    choices: [
+      { text: "Flower Garden 🌷", next: "garden" },
+      { text: "Magical Castle 🏰", next: "castle" },
+      { text: "Rainbow Bridge 🌈", next: "rainbow" }
+    ]
+  },
+  garden: {
+    title: "Flower Garden",
+    art: "🌷🌼🌸",
+    story: "You enter the flower garden.\n\nSuddenly, the flowers begin talking!\n\nOne flower whispers:\n“The crystal is nearby... but you must find it.”\n\nYou see three flowers glowing.\nOne can reveal the secret path!\n\nWhich flower will you check?",
+    choices: [
+      { text: "Blue flower", next: "crystal" },
+      { text: "Yellow flower", next: "crystal" },
+      { text: "Pink flower", next: "crystal" }
+    ]
+  },
+  castle: {
+    title: "Magical Castle",
+    art: "🏰⭐☁️🌈",
+    story: "You arrive at the castle.\n\nThere are three magical doors:\n\nOne is covered in shiny stars.\nOne is covered in cottony clouds.\nOne is covered in vibrant rainbows.\n\nWhich door will you enter?",
+    choices: [
+      { text: "Stars door ⭐", next: "crystal" },
+      { text: "Cloud door ☁️", next: "crystal" },
+      { text: "Rainbow door 🌈", next: "crystal" }
+    ]
+  },
+  rainbow: {
+    title: "Follow the Rainbow",
+    art: "🌈🧚",
+    story: "You follow the rainbow and discover a bridge that is sparkling!\n\nSuddenly, a tiny fairy appears!\n\nThe fairy waves her magic wand and says:\n“Hello, little adventurer! I can give you one magical item. Choose wisely!”\n\nWhat magical item do you choose?",
+    choices: [
+      { text: "Magic wings 🪽", next: "crystal" },
+      { text: "Magic wand 🪄", next: "crystal" },
+      { text: "Unicorn horn 🦄", next: "crystal" }
+    ]
+  },
+  crystal: {
+    title: "The Crystal",
+    art: "🐉💎",
+    story: "After following your magical path, you finally discover the missing crystal!\n\nBut there is a problem...\n\nThe crystal is guarded by a sleepy dragon!\n\nHow will you get the crystal?",
+    choices: [
+      { text: "Sing a song 🎵", next: "sing" },
+      { text: "Give the dragon an apple 🍎", next: "apple" },
+      { text: "Use your magic 🪄", next: "magic" }
+    ]
+  },
+  sing: {
+    title: "Sing a Song to Wake the Dragon",
+    art: "🐉🎵",
+    story: "You sing a cheerful song.\n\nThe dragon wakes up and starts dancing!\n\nOops! It accidentally drops the crystal!\n\nYou pick it up and place it in your hand.",
+    choices: [{ text: "Continue ✨", next: "found" }]
+  },
+  apple: {
+    title: "Give the Dragon an Apple",
+    art: "🐉🍎",
+    story: "The dragon LOVES the apple!\n\nIt gives you a shiny golden key.\n\nYou use the key to open a chest.\n\nInside is the magical crystal!!",
+    choices: [{ text: "Take the Crystal 💎", next: "found" }]
+  },
+  magic: {
+    title: "Use Your Magic",
+    art: "🐉🪄",
+    story: "You use your magic and create a huge rainbow portal!\n\nThe dragon flies through the portal.\n\nYou find the crystal behind it!!",
+    choices: [{ text: "Take the Crystal 💎", next: "found" }]
+  },
+  found: {
+    title: "The Unicorn's Surprise!",
+    art: "🦄💎🌈",
+    story: "The unicorn takes the crystal from your hands.\n\nSuddenly, the whole forest begins to sparkle!\n\nThe unicorn says:\n“Thank you for saving my magical crystal!”\n\nThen something amazing happens...\nA giant rainbow appears in the sky!\n\nThe unicorn invites you to come with it:\n“Come on! Your adventure isn't over yet!”",
+    choices: [{ text: "Continue 🌈", next: "ending" }]
+  },
+  ending: {
+    title: "CONGRATULATIONS!!!",
+    art: "🦄🎉🌈",
+    story: "You saved the unicorn and returned its magical crystal!\n\nThe unicorn gives you a magical ride through the rainbow sky!\n\nYOU ARE NOW OFFICIALLY A UNICORN HERO!\n\nTHE END",
+    choices: [{ text: "Play Again", next: "restart" }]
+  }
+};
+
+function renderStart() {
+  history = [];
+  game.innerHTML = `
+    <h1>The Magical Adventure</h1>
+    <div class="rule"></div>
+    <div class="art" aria-label="Unicorn">🦄✨</div>
+    <div class="story">A magical adventure is waiting for you!\n\nEnter your name to begin.</div>
+    <label for="playerName"><strong>Enter your name:</strong></label>
+    <input id="playerName" maxlength="24" placeholder="Your name" autocomplete="given-name">
+    <div class="error" id="error"></div>
+    <button id="start">Start Game</button>
+    <div class="footer">The Magical Adventure</div>`;
+  const input = document.getElementById("playerName");
+  input.addEventListener("keydown", e => { if (e.key === "Enter") startGame(); });
+  document.getElementById("start").addEventListener("click", startGame);
+  input.focus();
+}
+function startGame() {
+  const input = document.getElementById("playerName");
+  const name = input.value.trim();
+  if (!name) {
+    document.getElementById("error").textContent = "Please enter your name first!";
+    input.focus();
+    return;
+  }
+  playerName = name;
+  showScene("welcome", false);
+}
+function showScene(id, save = true) {
+  if (id === "restart") { renderStart(); return; }
+  if (save && currentScene) history.push(currentScene);
+  currentScene = id;
+  const scene = scenes[id];
+  const title = typeof scene.title === "function" ? scene.title() : scene.title;
+  game.innerHTML = `
+    <h1>${escapeHtml(title)}</h1>
+    <div class="rule"></div>
+    <div class="art">${scene.art}</div>
+    <div class="story"></div>
+    <div id="choices"></div>
+    <div id="back"></div>
+    <div class="footer">The Magical Adventure</div>`;
+  game.querySelector(".story").textContent = scene.story;
+  const choices = document.getElementById("choices");
+  scene.choices.forEach(choice => {
+    const button = document.createElement("button");
+    button.textContent = choice.text;
+    button.addEventListener("click", () => showScene(choice.next));
+    choices.appendChild(button);
+  });
+  if (history.length) {
+    const back = document.createElement("button");
+    back.className = "secondary";
+    back.textContent = "Go Back";
+    back.addEventListener("click", goBack);
+    document.getElementById("back").appendChild(back);
+  }
+}
+function goBack() {
+  if (history.length) {
+    const previous = history.pop();
+    showScene(previous, false);
+  }
+}
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, c => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+  }[c]));
+}
+let currentScene = null;
+renderStart();
+</script>
+</body>
+</html>
